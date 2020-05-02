@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,9 +15,19 @@ namespace CodingameFileGenerator
             "class", "struct", "enum", "interface"
         };
 
-        IList<string> _filesPath;
-        IList<string> _outputFileUsingsLines;
-        IList<string> _outputFileContentLines;
+        private IList<string> _filesPath;
+
+        private IList<string> _outputFileUsingsLines;
+        public IReadOnlyCollection<string> OutputFileUsingsLines
+        {
+            get { return new ReadOnlyCollection<string>(_outputFileUsingsLines); }
+        }
+
+        private IList<string> _outputFileContentLines;
+        public IReadOnlyCollection<string> OutputFileContentLines
+        {
+            get { return new ReadOnlyCollection<string>(_outputFileContentLines); }
+        }
 
         public OutputFileGenerator(IEnumerable<string> filesPath, string firstFileName = null)
         {
@@ -30,20 +41,21 @@ namespace CodingameFileGenerator
             }
         }
 
-        public void Run(string outputFilePath)
+        public OutputFileWriter Run()
         {
+            OutputFileWriter writer;
             if (SeparateUsingsFromOtherContent())
             {
-                List<string> outputFileAllLines = new List<string>();
-                outputFileAllLines.AddRange(_outputFileUsingsLines);
-                outputFileAllLines.Add("");
-                outputFileAllLines.AddRange(_outputFileContentLines);
-
-                if (FileHelper.WriteAllLines(outputFilePath, outputFileAllLines))
-                {
-                    Log.Information($"Output file [{ outputFilePath }] generated with { outputFileAllLines.Count } lines");
-                }
+                writer = new OutputFileWriter(OutputFileUsingsLines, OutputFileContentLines);
             }
+            else
+            {
+                // Generation failed
+                string[] noLines = Array.Empty<string>();
+                writer = new OutputFileWriter(noLines, noLines);
+            }
+
+            return writer;
         }
 
         private void PutFirstFileNameFirstInFilesList(string firstFileName)

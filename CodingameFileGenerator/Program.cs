@@ -52,7 +52,7 @@ namespace CodingameFileGenerator
                     if (filesPath != null)
                     {
                         OutputFileGenerator output = new OutputFileGenerator(filesPath, consoleArgs.FirstFileName);
-                        output.Run(consoleArgs.OutputFilepath);
+                        output.Run().WriteToFile(consoleArgs.OutputFilepath);
                     }
                 }
             }
