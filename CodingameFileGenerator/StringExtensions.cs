@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace CodingameFileGenerator
 {
@@ -6,6 +7,11 @@ namespace CodingameFileGenerator
     {
         public static int IndexOfAny(this string str, IEnumerable<string> words)
         {
+            if (words == null)
+            {
+                throw new ArgumentNullException("words");
+            }
+
             int smallestIndex = int.MaxValue;
 
             foreach (string word in words)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Abstractions;
 using Serilog;
 
 namespace CodingameFileGenerator
@@ -10,6 +11,7 @@ namespace CodingameFileGenerator
         static void Main(string[] args)
         {
             InitLog();
+            InitIOWrapper();
             Log.Information($"Start Program");
 
             Stopwatch stopwatch = new Stopwatch();
@@ -34,6 +36,11 @@ namespace CodingameFileGenerator
                 .CreateLogger();
         }
 
+        private static void InitIOWrapper()
+        {
+            IO.This = new FileSystem();
+        }
+
         private static void Run(string[] args)
         {
             ConsoleArgumentsManager consoleArgs = new ConsoleArgumentsManager(args);
@@ -41,7 +48,7 @@ namespace CodingameFileGenerator
             if (consoleArgs.AreConsoleArgumentsValid())
             {
                 bool isDeleteOutputFileOk = true;
-                if (File.Exists(consoleArgs.OutputFilepath))
+                if (IO.This.File.Exists(consoleArgs.OutputFilepath))
                 {
                     isDeleteOutputFileOk = FileHelper.Delete(consoleArgs.OutputFilepath);
                 }
@@ -51,8 +58,8 @@ namespace CodingameFileGenerator
                     string[] filesPath = DirectoryHelper.GetSourceFilePaths(consoleArgs.RootFolderPath, "cs", SearchOption.AllDirectories);
                     if (filesPath != null)
                     {
-                        OutputFileGenerator output = new OutputFileGenerator(filesPath, consoleArgs.FirstFileName);
-                        output.Run().WriteToFile(consoleArgs.OutputFilepath);
+                        OutputGenerator output = new OutputGenerator(filesPath, consoleArgs.FirstFileName);
+                        output.Run(consoleArgs.OutputFilepath);
                     }
                 }
             }

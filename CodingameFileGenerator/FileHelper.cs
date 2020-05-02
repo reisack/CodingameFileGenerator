@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using Serilog;
 
 namespace CodingameFileGenerator
@@ -13,7 +12,7 @@ namespace CodingameFileGenerator
 
             try
             {
-                File.Delete(path);
+                IO.This.File.Delete(path);
                 processIsOk = true;
             }
             catch (Exception ex)
@@ -30,7 +29,7 @@ namespace CodingameFileGenerator
 
             try
             {
-                File.WriteAllLines(path, contents);
+                IO.This.File.WriteAllLines(path, contents);
                 processIsOk = true;
             }
             catch (Exception ex)

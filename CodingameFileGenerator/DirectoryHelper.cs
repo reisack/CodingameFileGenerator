@@ -18,7 +18,7 @@ namespace CodingameFileGenerator
 
             try
             {
-                _currentDirectory = Directory.GetCurrentDirectory();
+                _currentDirectory = IO.This.Directory.GetCurrentDirectory();
             }
             catch (Exception ex)
             {
@@ -35,7 +35,7 @@ namespace CodingameFileGenerator
 
             try
             {
-                filesPath = Directory.GetFiles(path, $"*.{ extension }", searchOption);
+                filesPath = IO.This.Directory.GetFiles(path, $"*.{ extension }", searchOption);
             }
             catch (Exception ex)
             {
