@@ -1,18 +1,17 @@
 ﻿using CommandLine;
 using System.Collections.Generic;
-using Serilog;
 
 namespace CodingameFileGenerator
 {
     public class Options
     {
-        [Option("output", Required = false, HelpText = "Output file folder, ex : --output C:\\Dev\\my-project (Default value : Same as executable)")]
+        [Option('o', "output", Required = false, HelpText = "Output file folder, ex : --output C:\\Dev\\my-project (Default value : Same as executable)")]
         public string OutputFolder { get; set; }
 
-        [Option("root-folder", Required = false, HelpText = "Root folder for recursively finding source files, ex : --root-folder C:\\Dev\\my-project\\src (Default value : Same as executable)")]
+        [Option('r', "root-folder", Required = false, HelpText = "Root folder for recursively finding source files, ex : --root-folder C:\\Dev\\my-project\\src (Default value : Same as executable)")]
         public string RootFolderPath { get; set; }
 
-        [Option("first-file", Required = false, HelpText = "Content of the provided file name will be at the top of output file, ex : --first-file botconts (for BotConsts.cs file)")]
+        [Option('f', "first-file", Required = false, HelpText = "Content of the provided file name will be at the top of output file, ex : --first-file botconts (for BotConsts.cs file)")]
         public string FirstFileName { get; set; }
     }
 

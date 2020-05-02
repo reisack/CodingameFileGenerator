@@ -30,6 +30,22 @@ namespace CodingameFileGenerator
             }
         }
 
+        public void Run(string outputFilePath)
+        {
+            if (SeparateUsingsFromOtherContent())
+            {
+                List<string> outputFileAllLines = new List<string>();
+                outputFileAllLines.AddRange(_outputFileUsingsLines);
+                outputFileAllLines.Add("");
+                outputFileAllLines.AddRange(_outputFileContentLines);
+
+                if (FileHelper.WriteAllLines(outputFilePath, outputFileAllLines))
+                {
+                    Log.Information($"Output file [{ outputFilePath }] generated with { outputFileAllLines.Count } lines");
+                }
+            }
+        }
+
         private void PutFirstFileNameFirstInFilesList(string firstFileName)
         {
             string firstFileFilePath = _filesPath.FirstOrDefault(filepath =>
@@ -45,22 +61,6 @@ namespace CodingameFileGenerator
             else
             {
                 Log.Warning($"Cannot put file content of { firstFileName }.cs at top of output file, this is probably a filename typo");
-            }
-        }
-
-        public void Run(string outputFilePath)
-        {
-            if (SeparateUsingsFromOtherContent())
-            {
-                List<string> outputFileAllLines = new List<string>();
-                outputFileAllLines.AddRange(_outputFileUsingsLines);
-                outputFileAllLines.Add("");
-                outputFileAllLines.AddRange(_outputFileContentLines);
-
-                if (FileHelper.WriteAllLines(outputFilePath, outputFileAllLines))
-                {
-                    Log.Information($"Output file [{ outputFilePath }] generated with { outputFileAllLines.Count } lines");
-                }
             }
         }
 

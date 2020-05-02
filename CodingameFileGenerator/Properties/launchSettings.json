@@ -2,7 +2,7 @@
   "profiles": {
     "CodingameFileGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "--root-folder C:\\Dev\\CodingameFileGenerator\\test-files --output C:\\Dev\\CodingameFileGenerator --first-file program"
+      "commandLineArgs": "-r C:\\Dev\\CodingameFileGenerator\\test-files -o C:\\Dev\\CodingameFileGenerator -f program"
     }
   }
 }
