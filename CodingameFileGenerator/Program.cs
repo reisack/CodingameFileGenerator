@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Abstractions;
 using Serilog;
+using System.Linq;
 
 namespace CodingameFileGenerator
 {
@@ -58,9 +59,14 @@ namespace CodingameFileGenerator
                 if (isDeleteOutputFileOk)
                 {
                     string[] filesPath = DirectoryHelper.GetSourceFilePaths(consoleArgs.RootFolderPath, "cs", SearchOption.AllDirectories);
+
                     if (filesPath != null)
                     {
-                        OutputGenerator output = new OutputGenerator(filesPath, consoleArgs.FirstFileName);
+                        // Directory.GetFiles() doesn't allow to search by Regex
+                        // The solution found is to find all CSharp files and remove the projectname.AssemblyInfo.cs manually
+                        var filteredFilesPath = filesPath.Where(filepath => !filepath.Contains("AssemblyInfo.cs"));
+
+                        OutputGenerator output = new OutputGenerator(filteredFilesPath, consoleArgs.FirstFileName);
                         output.Run(consoleArgs.OutputFilepath);
                     }
                 }
