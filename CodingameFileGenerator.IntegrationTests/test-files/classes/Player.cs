@@ -1,7 +1,7 @@
 ﻿          using                    System;        
 using     System.Collections.Generic; // HAHA !
 
-// PROUT
+// Test
 public class Player
 {
     private Dictionary<Direction, char> _charMovement = new Dictionary<Direction, char>

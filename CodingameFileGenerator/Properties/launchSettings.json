@@ -2,7 +2,7 @@
   "profiles": {
     "CodingameFileGenerator": {
       "commandName": "Project",
-      "commandLineArgs": "-r C:\\Dev\\CodingameFileGenerator\\test-files -o C:\\Dev\\CodingameFileGenerator -f program"
+      "commandLineArgs": "-r C:\\Dev\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests\\test-files -o C:\\Dev\\CodingameFileGenerator -f program"
     }
   }
 }

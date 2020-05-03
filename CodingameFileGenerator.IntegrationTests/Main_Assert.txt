@@ -1,0 +1,1144 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.IO;
+
+
+public class Game
+{
+    // --------------------------------------
+    // ----------- GAME CONSTANTS -----------
+    // --------------------------------------
+
+    // % of chance of "move 1" when SILENCE
+    public const int SILENCE_MOVE_RATE = 30;
+
+    // % of SILENCE in accordance to SONAR
+    public const int SILENCE_CHARGE_RATE = 80;
+
+    // Number of opponent's SILENCE we consider loosing his position
+    public const int NB_SILENCE_TOLERANCE = 3;
+
+    // We try to relocate _opponent when he TORPEDO, or not
+    public const bool CHECK_OPPONENT_TORPEDO_ORDER = false;
+
+    // -------------------------------------
+    // ---------------- END ----------------
+    // -------------------------------------
+
+    static private int _opponentSector = 0;
+
+    static private int _torpedoCooldown = -1;
+    static private int _silenceCooldown = -1;
+    static private int _sonarCooldown = -1;
+    static private int _mineCooldown = -1;
+
+    static private Player _player;
+    static private Opponent _opponent;
+
+    static Position LoadMapAndGetStartPosition(int width, int height)
+    {
+        // Start position for _player
+        Position startPosition = new Position { X = -1, Y = -1 };
+
+        for (int y = 0; y < height; y++)
+        {
+            string lineInfo = Console.ReadLine();
+            for (int x = 0; x < width; x++)
+            {
+                Console.Error.Write(lineInfo[x]);
+                MapInfo.GridInfo[y, x] = lineInfo[x];
+
+                MapInfo.PositionsDone[y, x] = false;
+
+                // We set only one time
+                if (startPosition.X == -1 && y > 8 && x > 8)
+                {
+                    // We want to spawn at odd number for position X and even number for Y
+                    // In order to have a weird start position
+                    if (MapInfo.GridInfo[y, x] == '.' && y % 2 == 0 && x % 2 == 1)
+                    {
+                        startPosition.X = x;
+                        startPosition.Y = y;
+                    }
+                }
+            }
+            Console.Error.WriteLine();
+        }
+
+        return startPosition;
+    }
+
+    static void Main(string[] args)
+    {
+        string[] inputs;
+        inputs = Console.ReadLine().Split(' ');
+
+        // Map Infos
+        int width = int.Parse(inputs[0]);
+        int height = int.Parse(inputs[1]);
+
+        int idPlayer = int.Parse(inputs[2]);
+
+        MapInfo.Init(width, height);
+        Position startPosition = LoadMapAndGetStartPosition(width, height);
+        
+        _player = new Player(startPosition.X, startPosition.Y);
+        _opponent = new Opponent();
+
+        MapInfo.PositionsDone[startPosition.Y, startPosition.X] = true;
+
+        int torpedoLaunchAttempts = 0;
+        bool isPlayerTurn = idPlayer == 0;
+        List<Position> mines = new List<Position>();
+
+        // Set _player start position
+        Console.WriteLine(_player.GetFormattedPosition());
+
+        // game loop
+        while (true)
+        {
+            // My turn
+            if (!isPlayerTurn)
+            {
+                string turnInfos = Console.ReadLine();
+                string sonarResult = Console.ReadLine();
+                string opponentOrders = Console.ReadLine();
+                inputs = turnInfos.Split(' ');
+
+                // Current position
+                int x = int.Parse(inputs[0]);
+                int y = int.Parse(inputs[1]);
+                _player.Position.X = x;
+                _player.Position.Y = y;
+
+                _player.Life = int.Parse(inputs[2]);
+                _opponent.Life = int.Parse(inputs[3]);
+
+                _torpedoCooldown = int.Parse(inputs[4]);
+                _sonarCooldown = int.Parse(inputs[5]);
+                _silenceCooldown = int.Parse(inputs[6]);
+                _mineCooldown = int.Parse(inputs[7]);
+
+                if (_player.HasShoot)
+                {
+                    torpedoLaunchAttempts = 0;
+                    CheckOpponentLifeAfterTorpedo();
+                }
+                _player.HasShoot = false;
+
+                HandleOpponentDectectionWithSonar(sonarResult);
+
+                // We verify both MOVE and SILENCE aren't present at the same turn
+                // in order to avoid cheat.
+                // Because, it's possible to SILENCE 0 and MOVE
+                // (Yes, this is cheat to me...)
+                bool opponentHasCheated = opponentOrders.Contains("SILENCE") && opponentOrders.Contains("MOVE");
+                string[] splittedOpponentOrders = opponentOrders.Split('|');
+
+                _opponent.AnalyseOrders(splittedOpponentOrders, _player, opponentHasCheated);
+
+                Console.Error.WriteLine("MapInfo.PositionsDone X:" + _player.Position.X + ", Y: " + _player.Position.Y);
+
+                MapInfo.PositionsDone[_player.Position.Y, _player.Position.X] = true;
+
+                char playerMove = _player.ChooseDirection();
+                StringBuilder command = new StringBuilder();
+
+                if (playerMove != 'R')
+                {
+                    // We move with SILENCE in priority
+                    if (_silenceCooldown == 0)
+                    {
+                        HandleSilence(playerMove, command);
+                    }
+                    else
+                    {
+                        HandleMove(playerMove, torpedoLaunchAttempts, command);
+                    }
+
+                    if (_torpedoCooldown <= 1)
+                    {
+                        HandleTorpedo(command, playerMove);
+                        torpedoLaunchAttempts++;
+                    }
+
+                    // Drop a mine
+                    if (_mineCooldown == 0)
+                    {
+                        DropMine(mines, command);
+                    }
+
+                    // Do Sonar
+                    if (_sonarCooldown == 0 && !_opponent.IsSpottedWithSonar)
+                    {
+                        HandleSonar(command);
+                    }
+                }
+                else
+                {
+                    HandleSurface(command);
+                }
+
+                HandleMineExplosion(mines, command);
+
+                _opponent.PreviousTurnLife = _opponent.Life;
+                _player.PreviousTurnLife = _player.Life;
+                DisplaySupposedOpponentPosition(command);
+
+                Console.Error.WriteLine("command : " + command);
+                // END OF TURN, NOTHING AFTER THIS LINE !!!
+                Console.WriteLine(command);
+            }
+
+            isPlayerTurn = !isPlayerTurn;
+        }
+    }
+
+    static void CheckOpponentLifeAfterTorpedo()
+    {
+        // If _opponent hasn't been touched, change position
+        //  X
+        // XXX
+        //  X
+        if (_opponent.PreviousTurnLife == _opponent.Life)
+        {
+            _opponent.NotTouched();
+        }
+        // If _opponent touched, we are good !
+        // Don't try to relocate position !
+        // And follow him !
+        else if (_opponent.PreviousTurnLife > _opponent.Life)
+        {
+            _opponent.Touched();
+            _player.FollowOpponent = true;
+        }
+    }
+
+    static void HandleOpponentDectectionWithSonar(string sonarResult)
+    {
+        if (sonarResult == "Y")
+        {
+            if (!_player.FollowOpponent)
+            {
+                _opponent.UpdatePositionBySector(_opponentSector);
+                _opponent.IsSpottedWithSonar = true;
+            }
+        }
+    }
+
+    static void HandleSurface(StringBuilder command)
+    {
+        MapInfo.ClearPositionsDone();
+
+        // Set NoDirection
+        _player.ResetPreviousDirection();
+        _player.ResetFavoriteDirection();
+
+        command.Clear();
+        command.Append("SURFACE");
+    }
+
+    static void HandleMove(char playerMove, int torpedoLaunchAttempts, StringBuilder command)
+    {
+        if (torpedoLaunchAttempts > 0 || _torpedoCooldown == 0)
+        {
+            Random rng = new Random();
+            int rngSilenceCharge = rng.Next(0, 100);
+
+            command.Clear();
+
+            if (rngSilenceCharge > SILENCE_CHARGE_RATE && _sonarCooldown > 0)
+            {
+                command.Append($"MOVE {playerMove} SONAR");
+            }
+            else
+            {
+                command.Append($"MOVE {playerMove} SILENCE");
+            }
+        }
+        else
+        {
+            command.Append($"MOVE {playerMove} TORPEDO");
+        }
+    }
+
+    static void HandleTorpedo(StringBuilder command, char playerMove)
+    {
+        // Only TORPEDO if we can really shoot
+        // Re-define _opponent position if bugged
+        if (_opponent.Position.X < 0) _opponent.Position.X = 0;
+        if (_opponent.Position.Y < 0) _opponent.Position.Y = 0;
+        if (_opponent.Position.X >= MapInfo.Width) _opponent.Position.X = MapInfo.Width - 1;
+        if (_opponent.Position.Y >= MapInfo.Height) _opponent.Position.Y = MapInfo.Height - 1;
+
+        if (MapInfo.GridInfo[_opponent.Position.Y, _opponent.Position.X] == '.'
+            && (_opponent.HasSurfacedOrShoot || _player.FollowOpponent
+            || _opponent.IsSpottedWithSonar || _player.Touched()))
+        {
+            int differencePositionX = Math.Abs(_opponent.Position.X - _player.Position.X);
+            int differencePositionY = Math.Abs(_opponent.Position.Y - _player.Position.Y);
+            int differencePosition = differencePositionX + differencePositionY;
+            
+            if (differencePosition <= 4)
+            {
+                command.Clear();
+
+                if (_torpedoCooldown == 0)
+                {
+                    command.Append($"TORPEDO {_opponent.Position.X} {_opponent.Position.Y}|MOVE {playerMove} TORPEDO");
+                }
+                else if (_torpedoCooldown == 1)
+                {
+                    command.Append($"MOVE {playerMove} TORPEDO|TORPEDO {_opponent.Position.X} {_opponent.Position.Y}");
+                }
+                
+                _player.HasShoot = true;
+            }
+        }
+    }
+
+    static void HandleSilence(char playerMove, StringBuilder command)
+    {
+        Random rng = new Random();
+        int rngSilenceMoveOrNot = rng.Next(0, 100);
+        int nbTilesMove = 0;
+
+        command.Clear();
+
+        if (rngSilenceMoveOrNot > SILENCE_MOVE_RATE)
+        {
+            nbTilesMove = 1;
+        }
+        else
+        {
+            _player.NoMoveThisTurn = true;
+        }
+
+        command.Append($"SILENCE {playerMove} {nbTilesMove}");
+    }
+
+    static void HandleSonar(StringBuilder command)
+    {
+        int playerSector = _player.Position.GetSector();
+        int supposedOpponentSector = _opponent.Position.GetSector();
+
+        if (playerSector != supposedOpponentSector)
+        {
+            _opponentSector = supposedOpponentSector;
+        }
+        else
+        {
+            Random rng = new Random();
+            do
+            {
+                _opponentSector = rng.Next(1, 9);
+            } while (_opponentSector == playerSector);
+        }
+
+        command.Append($"|SONAR {_opponentSector}");
+    }
+
+    static void DropMine(List<Position> mines, StringBuilder command)
+    {
+        char mineDirection = _player.DropMineDirection();
+        if (mineDirection != 'A')
+        {
+            command.Append($"|MINE {mineDirection}");
+
+            // Mine position will be the position of _player, now
+            Position minePosition = new Position();
+            minePosition.X = _player.Position.X;
+            minePosition.Y = _player.Position.Y;
+
+            mines.Add(minePosition);
+        }
+    }
+
+    static void HandleMineExplosion(List<Position> mines, StringBuilder command)
+    {
+        // Explode mine if _opponent is nearby
+        //bool alreadyTriggered = false
+        Position mineChoosed = null;
+        foreach (Position mine in mines)
+        {
+            if (mine.X >= _opponent.Position.X - 1 && mine.X <= _opponent.Position.X + 1
+             && mine.Y >= _opponent.Position.Y - 1 && mine.Y <= _opponent.Position.Y + 1)
+            {
+                mineChoosed = mine;
+                command.Append($"|TRIGGER {mine.X} {mine.Y}");
+                break;
+            }
+        }
+
+        if (mineChoosed != null)
+        {
+            mines.Remove(mineChoosed);
+        }
+    }
+
+    static void DisplaySupposedOpponentPosition(StringBuilder command)
+    {
+        command.Append($"|MSG X: {_opponent.Position.X}, Y: {_opponent.Position.Y}");
+    }
+}
+ // enum toto
+
+public class Opponent /* 
+hello */
+{
+    static private Dictionary<int, Position> _supposedOponnentPosition = new Dictionary<int, Position>
+    {
+        {
+            1,
+            new Position { X = 2, Y = 2 }
+        },
+        {
+            2,
+            new Position { X = 7, Y = 2 }
+        },
+        {
+            3,
+            new Position { X = 12, Y = 2 }
+        },
+        {
+            4,
+            new Position { X = 2, Y = 7 }
+        },
+        {
+            5,
+            new Position { X = 7, Y = 7 }
+        },
+        {
+            6,
+            new Position { X = 12, Y = 7 }
+        },
+        {
+            7,
+            new Position { X = 2, Y = 12 }
+        },
+        {
+            8,
+            new Position { X = 7, Y = 12 }
+        },
+        {
+            9,
+            new Position { X = 12, Y = 12 }
+        }
+    };
+
+    public Position Position { get; set; }
+    public int Life { get; set; }
+    public int PreviousTurnLife { get; set; }
+    public bool HasSurfacedOrShoot { get; set; }
+    public int NbSilences { get; set; }
+    public Direction PreviousDirection { get; set; }
+
+    public bool IsSpottedWithSonar { get; set; }
+
+    private int _changeSupposedOponnentPositionIndex = 0;
+    private Position[] _changeSupposedOponnentPosition = new Position[5]
+    {
+            // Up
+            new Position { X = 0, Y = -1 },
+            // Left
+            new Position { X = -1, Y = 1 },
+            // Down
+            new Position { X = 1, Y = 1 },
+            // Right
+            new Position { X = 1, Y = -1 },
+            // Back to center
+            new Position { X = -1, Y = 0 }
+    };
+
+    public Opponent()
+    {
+        Position = new Position { X = 7, Y = 7 };
+        Life = -1;
+        PreviousTurnLife = -1;
+        HasSurfacedOrShoot = false;
+        NbSilences = 0;
+        PreviousDirection = Direction.NoDirection;
+        IsSpottedWithSonar = false;
+    }
+
+    public void Touched()
+    {
+        NbSilences = 0;
+        HasSurfacedOrShoot = true;
+        _changeSupposedOponnentPositionIndex = 0;
+    }
+
+    public void NotTouched()
+    {
+        int quitLoopWhenZero = _changeSupposedOponnentPosition.Length;
+
+        do
+        {
+            quitLoopWhenZero--;
+
+            Position toChange = _changeSupposedOponnentPosition[_changeSupposedOponnentPositionIndex];
+            Position.X += toChange.X;
+            Position.Y += toChange.Y;
+            _changeSupposedOponnentPositionIndex++;
+
+            Console.Error.WriteLine("_changeSupposedOponnentPosition");
+            Console.Error.WriteLine("Position.X : " + Position.X);
+            Console.Error.WriteLine("Position.Y : " + Position.Y);
+
+            if (_changeSupposedOponnentPositionIndex == 4)
+            {
+                _changeSupposedOponnentPositionIndex = 0;
+            }
+
+        } while (quitLoopWhenZero >= 0 && (Position.X < 0 || Position.X > MapInfo.Width - 1
+                || Position.Y < 0 || Position.Y > MapInfo.Height - 1));
+    }
+
+    public void UpdatePositionBySector(int sector)
+    {
+        Position = _supposedOponnentPosition[sector];
+    }
+
+    public void AnalyseOrders(string[] splittedOpponentOrders, Player player, bool hasCheated)
+    {
+        // Prendre la partie avec "MOVE"
+        foreach (string order in splittedOpponentOrders)
+        {
+            if (order.Contains("MOVE"))
+            {
+                HandleMoveOrder(order, player);
+            }
+
+            if (order.Contains("SURFACE") && !player.FollowOpponent)
+            {
+                HandleSurfaceOrder(order);
+            }
+
+            if (Game.CHECK_OPPONENT_TORPEDO_ORDER
+                && (
+                    (!player.FollowOpponent && !IsSpottedWithSonar)
+                    || NbSilences > Game.NB_SILENCE_TOLERANCE
+                   )
+                && (order.StartsWith("TORPEDO") || order.Contains("|TORPEDO")))
+            {
+                HandleTorpedoOrder(order, player);
+            }
+             
+            if (!hasCheated && order.Contains("SILENCE"))
+            {
+                HandleSilenceOrder();
+            }
+        }
+    }
+
+    private void HandleMoveOrder(string order, Player player)
+    {
+        char opponentMove = order[5];
+
+        Console.Error.WriteLine("Before Move Order");
+        Console.Error.WriteLine("Move Order : " + order);
+        Console.Error.WriteLine("Position.X : " + Position.X);
+        Console.Error.WriteLine("Position.Y : " + Position.Y);
+
+        Direction opponentDirection = Direction.NoDirection;
+
+        switch (opponentMove)
+        {
+            case 'N':
+                if (Position.Y > 0) Position.Y--;
+                opponentDirection = Direction.Up;
+                break;
+            case 'S':
+                if (Position.Y < MapInfo.Height - 1) Position.Y++;
+                opponentDirection = Direction.Down;
+                break;
+            case 'E':
+                if (Position.X < MapInfo.Width - 1) Position.X++;
+                opponentDirection = Direction.Right;
+                break;
+            case 'W':
+                if (Position.X > 0) Position.X--;
+                opponentDirection = Direction.Left;
+                break;
+        }
+
+        PreviousDirection = opponentDirection;
+
+        if (player.FollowOpponent)
+        {
+            player.OpponentDirection = opponentDirection;
+        }
+
+        Console.Error.WriteLine("After Move Order");
+        Console.Error.WriteLine("Position.X : " + Position.X);
+        Console.Error.WriteLine("Position.Y : " + Position.Y);
+    }
+
+    private void HandleSurfaceOrder(string order)
+    {
+        NbSilences = 0;
+        HasSurfacedOrShoot = true;
+        int opponentSector = int.Parse(order[8].ToString());
+        Console.Error.WriteLine("opponentSector : " + opponentSector);
+        Position supposedOpponentPosition = _supposedOponnentPosition[opponentSector];
+        Position.X = supposedOpponentPosition.X;
+        Position.Y = supposedOpponentPosition.Y;
+        Console.Error.WriteLine("Position.X : " + Position.X);
+        Console.Error.WriteLine("Position.Y : " + Position.Y);
+    }
+
+    private void HandleTorpedoOrder(string order, Player player)
+    {
+        Console.Error.WriteLine("order : " + order);
+
+        string[] torpedoCoordinates = order.Split(' ');
+
+        int torpedoX = int.Parse(torpedoCoordinates[1].ToString());
+        int torpedoY = int.Parse(torpedoCoordinates[2].ToString());
+
+        bool checkLeft = player.Position.X > MapInfo.Width / 2;
+        bool checkUp = player.Position.Y > MapInfo.Height / 2;
+        Position.X = (checkLeft) ? torpedoX - 2 : torpedoX + 2;
+        Position.Y = (checkUp) ? torpedoY - 2 : torpedoY + 2;
+
+        NbSilences = 0;
+        HasSurfacedOrShoot = true;
+
+        Console.Error.WriteLine("Position.X : " + Position.X);
+        Console.Error.WriteLine("Position.Y : " + Position.Y);
+    }
+
+    private void HandleSilenceOrder()
+    {
+        if (NbSilences > Game.NB_SILENCE_TOLERANCE - 1)
+        {
+            HasSurfacedOrShoot = false;
+            IsSpottedWithSonar = false;
+            NbSilences = 0;
+        }
+
+        NbSilences++;
+
+        // We suppose that _opponent has moved in the same direction as previous
+        if (PreviousDirection != Direction.NoDirection)
+        {
+            switch (PreviousDirection)
+            {
+                case Direction.Up:
+                    if (Position.Y > 0) Position.Y--;
+                    break;
+                case Direction.Down:
+                    if (Position.Y < MapInfo.Height - 1) Position.Y++;
+                    break;
+                case Direction.Right:
+                    if (Position.X < MapInfo.Width - 1) Position.X++;
+                    break;
+                case Direction.Left:
+                    if (Position.X > 0) Position.X--;
+                    break;
+            }
+        }
+    }
+}
+
+// Test
+public class Player
+{
+    private Dictionary<Direction, char> _charMovement = new Dictionary<Direction, char>
+    {
+        { Direction.Left, 'W' },
+        { Direction.Right, 'E' },
+        { Direction.Up, 'N' },
+        { Direction.Down, 'S' }
+    };
+
+    private Direction _favorite;
+
+    public Position Position { get; set; }
+    public bool FollowOpponent { get; set; }
+    public Direction OpponentDirection { get; set; }
+    public bool NoMoveThisTurn { get; set; }
+    public Direction PreviousDirection { get; private set; }
+    public Direction CurrentDirection { get; private set; }
+    public int Life { get; set; }
+    public int PreviousTurnLife { get; set; }
+    public bool HasShoot { get; set; }
+
+    public Player(int x, int y)
+    {
+        Position = new Position { X = x, Y = y };
+        PreviousDirection = Direction.NoDirection;
+        CurrentDirection = Direction.NoDirection;
+        FollowOpponent = false;
+        OpponentDirection = Direction.NoDirection;
+        _favorite = Direction.NoDirection;
+        NoMoveThisTurn = false;
+        Life = -1;
+        PreviousTurnLife = -1;
+        HasShoot = false;
+    }
+
+    public void ResetPreviousDirection()
+    {
+        PreviousDirection = Direction.NoDirection;
+    }
+    
+    public string GetFormattedPosition()
+    {
+        return Position.X.ToString() + " " + Position.Y.ToString();
+    }
+
+    public void ResetFavoriteDirection()
+    {
+        _favorite = Direction.NoDirection;
+    }
+
+    public bool Touched()
+    {
+        return PreviousTurnLife > -1 && PreviousTurnLife > Life;
+    }
+
+    public char DropMineDirection()
+    {
+        char direction = 'A';
+
+        switch (PreviousDirection)
+        {
+            case Direction.Left:
+                direction = 'E';
+                break;
+            case Direction.Right:
+                direction = 'W';
+                break;
+            case Direction.Up:
+                direction = 'S';
+                break;
+            case Direction.Down:
+                direction = 'N';
+                break;
+        }
+
+        return direction;
+    }
+
+    public char ChooseDirection()
+    {
+        // We go to the _opponent direction, if possible
+        char direction = TryToFollowOpponent();
+        if (direction != 'A')
+        {
+            return direction;
+        }
+
+        // The direction that should be checked first
+        direction = TryFavoriteDirection();
+        if (direction != 'A')
+        {
+            return direction;
+        }
+
+        direction = GetBestDirection();
+        if (direction != 'A')
+        {
+            return direction;
+        }
+
+        return RandomGoOrSurface();
+    }
+
+    private void Go(Direction direction)
+    {
+        PreviousDirection = direction;
+
+        if (!NoMoveThisTurn)
+        {
+            switch (direction)
+            {
+                case Direction.Left:
+                    Position.X--;
+                    CurrentDirection = Direction.Left;
+                    break;
+                case Direction.Right:
+                    Position.X++;
+                    CurrentDirection = Direction.Right;
+                    break;
+                case Direction.Up:
+                    Position.Y--;
+                    CurrentDirection = Direction.Up;
+                    break;
+                case Direction.Down:
+                    Position.Y++;
+                    CurrentDirection = Direction.Down;
+                    break;
+            }
+        }
+    }
+
+    private bool CanGo(Direction direction)
+    {
+        bool condition = false;
+        int newX = Position.X, newY = Position.Y;
+
+        switch (direction)
+        {
+            case Direction.Left:
+                newX = Position.X - 1;
+                condition = Position.X >= 0 && newX >= 0 && MapInfo.GridInfo[Position.Y, newX] == '.' && !MapInfo.PositionsDone[Position.Y, newX];
+                break;
+            case Direction.Right:
+                newX = Position.X + 1;
+                condition = Position.X < MapInfo.Width - 1 && newX < MapInfo.Width && MapInfo.GridInfo[Position.Y, newX] == '.' && !MapInfo.PositionsDone[Position.Y, newX];
+                break;
+            case Direction.Up:
+                newY = Position.Y - 1;
+                condition = Position.Y >= 0 && newY >= 0 && MapInfo.GridInfo[newY, Position.X] == '.' && !MapInfo.PositionsDone[newY, Position.X];
+                break;
+            case Direction.Down:
+                newY = Position.Y + 1;
+                condition = Position.Y < MapInfo.Height - 1 && newY < MapInfo.Height && MapInfo.GridInfo[newY, Position.X] == '.' && !MapInfo.PositionsDone[newY, Position.X];
+                break;
+        }
+
+        if (condition)
+        {
+
+            // Check for dead end
+
+            Console.Error.WriteLine("newY : " + newY);
+            Console.Error.WriteLine("newX : " + newX);
+            Console.Error.WriteLine("direction : " + direction);
+
+            bool technicalCondition = newY < 0 || newY > MapInfo.Height - 1 || newX < 0 || newX > MapInfo.Width - 1;
+
+            if ((technicalCondition || newY - 1 < 0 || (MapInfo.GridInfo[newY - 1, newX] == 'x' || MapInfo.PositionsDone[newY - 1, newX]))
+            && (technicalCondition || newY + 1 > MapInfo.Height - 1 || (MapInfo.GridInfo[newY + 1, newX] == 'x' || MapInfo.PositionsDone[newY + 1, newX]))
+            && (technicalCondition || newX - 1 < 0 || (MapInfo.GridInfo[newY, newX - 1] == 'x' || MapInfo.PositionsDone[newY, newX - 1]))
+            && (technicalCondition || newX + 1 > MapInfo.Width - 1 || (MapInfo.GridInfo[newY, newX + 1] == 'x' || MapInfo.PositionsDone[newY, newX + 1])))
+            {
+                condition = false;
+            }
+
+
+            // Check again
+            if (condition)
+            {
+                switch (direction)
+                {
+                    case Direction.Left:
+                        newX = Position.X - 2;
+                        break;
+                    case Direction.Right:
+                        newX = Position.X + 2;
+                        break;
+                    case Direction.Up:
+                        newY = Position.Y - 2;
+                        break;
+                    case Direction.Down:
+                        newY = Position.Y + 2;
+                        break;
+                }
+
+                Console.Error.WriteLine("newY : " + newY);
+                Console.Error.WriteLine("newX : " + newX);
+                Console.Error.WriteLine("direction : " + direction);
+
+                technicalCondition = newY < 0 || newY > MapInfo.Height - 1 || newX < 0 || newX > MapInfo.Width - 1;
+
+                if (!technicalCondition && MapInfo.GridInfo[newY, newX] == '.' && !MapInfo.PositionsDone[newY, newX])
+                {
+                    if ((direction == Direction.Down || technicalCondition || newY - 1 < 0 || (MapInfo.GridInfo[newY - 1, newX] == 'x' || MapInfo.PositionsDone[newY - 1, newX]))
+                    && (direction == Direction.Up || technicalCondition || newY + 1 > MapInfo.Height - 1 || (MapInfo.GridInfo[newY + 1, newX] == 'x' || MapInfo.PositionsDone[newY + 1, newX]))
+                    && (direction == Direction.Right || technicalCondition || newX - 1 < 0 || (MapInfo.GridInfo[newY, newX - 1] == 'x' || MapInfo.PositionsDone[newY, newX - 1]))
+                    && (direction == Direction.Left || technicalCondition || newX + 1 > MapInfo.Width - 1 || (MapInfo.GridInfo[newY, newX + 1] == 'x' || MapInfo.PositionsDone[newY, newX + 1])))
+                    {
+                        condition = false;
+                    }
+                }
+            }
+        }
+
+        return condition;
+    }
+
+    private char GetBestDirection()
+    {
+        bool goUp = ShouldGoUp();
+
+        // First Up, if not possible Down
+        if (goUp)
+        {
+            if (CanGo(Direction.Up))
+            {
+                Go(Direction.Up);
+                return _charMovement[Direction.Up];
+            }
+
+            if (CanGo(Direction.Down))
+            {
+                Go(Direction.Down);
+                return _charMovement[Direction.Down];
+            }
+        }
+        // First Down, if not possible Up
+        else
+        {
+            if (CanGo(Direction.Down))
+            {
+                Go(Direction.Down);
+                return _charMovement[Direction.Down];
+            }
+
+            if (CanGo(Direction.Up))
+            {
+                Go(Direction.Up);
+                return _charMovement[Direction.Up];
+            }
+        }
+
+        if (_favorite == Direction.NoDirection)
+        {
+            bool goLeft = ShouldGoLeft();
+
+            // First Left, if not possible Right
+            if (goLeft)
+            {
+                if (CanGo(Direction.Left))
+                {
+                    _favorite = Direction.Left;
+                    Go(Direction.Left);
+                    return _charMovement[Direction.Left];
+                }
+
+                if (CanGo(Direction.Right))
+                {
+                    _favorite = Direction.Right;
+                    Go(Direction.Right);
+                    return _charMovement[Direction.Right];
+                }
+            }
+            // First Right, if not possible Left
+            else
+            {
+                if (CanGo(Direction.Right))
+                {
+                    _favorite = Direction.Right;
+                    Go(Direction.Right);
+                    return _charMovement[Direction.Right];
+                }
+
+                if (CanGo(Direction.Left))
+                {
+                    _favorite = Direction.Left;
+                    Go(Direction.Left);
+                    return _charMovement[Direction.Left];
+                }
+            }
+        }
+
+        return 'A';
+    }
+
+    private char TryToFollowOpponent()
+    {
+        if (FollowOpponent && OpponentDirection != Direction.NoDirection)
+        {
+            if (CanGo(OpponentDirection))
+            {
+                Go(OpponentDirection);
+                return _charMovement[OpponentDirection];
+            }
+            else
+            {
+                FollowOpponent = false;
+                OpponentDirection = Direction.NoDirection;
+                PreviousDirection = Direction.NoDirection;
+            }
+        }
+
+        return 'A';
+    }
+
+    private char TryFavoriteDirection()
+    {
+        if (_favorite != Direction.NoDirection)
+        {
+            if (CanGo(_favorite))
+            {
+                Go(_favorite);
+                return _charMovement[_favorite];
+            }
+        }
+
+        return 'A';
+    }
+
+    private char RandomGoOrSurface()
+    {
+        // Random choice
+        if (CanGo(Direction.Left))
+        {
+            Go(Direction.Left);
+            return _charMovement[Direction.Left];
+        }
+
+        if (CanGo(Direction.Up))
+        {
+            Go(Direction.Up);
+            return _charMovement[Direction.Up];
+        }
+
+        if (CanGo(Direction.Right))
+        {
+            Go(Direction.Right);
+            return _charMovement[Direction.Right];
+        }
+
+        if (CanGo(Direction.Down))
+        {
+            Go(Direction.Down);
+            return _charMovement[Direction.Down];
+        }
+
+        // Need to "SURFACE"
+        return 'R';
+    }
+
+    private bool ShouldGoUp()
+    {
+        // Check Up or Down - Best choice
+        int y = Position.Y;
+        bool obstacleEncoutered = false;
+        int cptUp;
+        int cpt = 0;
+
+        // Check Up choice
+        while (y > 0 && !obstacleEncoutered)
+        {
+            y--;
+            if (MapInfo.GridInfo[y, Position.X] == '.' && !MapInfo.PositionsDone[y, Position.X])
+            {
+                cpt++;
+            }
+            else
+            {
+                obstacleEncoutered = true;
+            }
+        }
+
+        cptUp = cpt;
+        y = Position.Y;
+        obstacleEncoutered = false;
+        cpt = 0;
+
+        // Check Down choice
+        while (y < MapInfo.Height - 1 && !obstacleEncoutered)
+        {
+            y++;
+            if (MapInfo.GridInfo[y, Position.X] == '.' && !MapInfo.PositionsDone[y, Position.X])
+            {
+                cpt++;
+            }
+            else
+            {
+                obstacleEncoutered = true;
+            }
+        }
+
+        return cptUp > cpt;
+    }
+
+    private bool ShouldGoLeft()
+    {
+        // Check Left or Right - Best choice
+        int x = Position.X;
+        bool obstacleEncoutered = false;
+        int cptLeft;
+        int cpt = 0;
+
+        // Check Left choice
+        while (x > 0 && !obstacleEncoutered)
+        {
+            x--;
+            if (MapInfo.GridInfo[Position.Y, x] == '.' && !MapInfo.PositionsDone[Position.Y, x])
+            {
+                cpt++;
+            }
+            else
+            {
+                obstacleEncoutered = true;
+            }
+        }
+
+        cptLeft = cpt;
+        x = Position.X;
+        obstacleEncoutered = false;
+        cpt = 0;
+
+        // Check Right choice
+        while (x < MapInfo.Width - 1 && !obstacleEncoutered)
+        {
+            x++;
+            if (MapInfo.GridInfo[Position.Y, x] == '.' && !MapInfo.PositionsDone[Position.Y, x])
+            {
+                cpt++;
+            }
+            else
+            {
+                obstacleEncoutered = true;
+            }
+        }
+
+        return cptLeft > cpt;
+    }
+}
+public class Position
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+
+    public int GetSector()
+    {
+        const int SECTOR_SIZE = 5;
+        return ((X / SECTOR_SIZE) + 1) + ((Y / SECTOR_SIZE) * 3);
+    }
+}
+// class ItsATrap
+
+public enum Direction //struct
+{
+    NoDirection,
+    Left,
+    Right,
+    Up,
+    Down
+}
+
+public static class MapInfo
+{
+    public static int Width { get; private set; }
+    public static int Height { get; private set; }
+    public static char[,] GridInfo { get; private set; }
+    public static bool[,] PositionsDone { get; private set; }
+
+    public static void Init(int width, int height)
+    {
+        Width = width;
+        Height = height;
+        GridInfo = new char[height, width];
+        PositionsDone = new bool[height, width];
+    }
+
+    public static void ClearPositionsDone()
+    {
+        PositionsDone = new bool[Height, Width];
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                PositionsDone[y, x] = false;
+            }
+        }
+    }
+}

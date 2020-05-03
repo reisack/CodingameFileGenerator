@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace CodingameFileGenerator.Tests
+﻿namespace CodingameFileGenerator.Tests
 {
     public class OutputGeneratorAsserts
     {
