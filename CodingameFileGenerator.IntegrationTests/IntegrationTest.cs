@@ -90,11 +90,11 @@ namespace CodingameFileGenerator.IntegrationTests
                             testSucceeded = !File.Exists(Program.OUTPUT_FILEPATH);
                             if (testSucceeded)
                             {
-                                Log.Information("Output file has not been created - test OK");
+                                Log.Information("Output file has not been created - Test OK");
                             }
                             else
                             {
-                                Log.Error("Output file has been created - test KO");
+                                Log.Error("Output file has been created - Test KO");
                             }
                         }
                     }
