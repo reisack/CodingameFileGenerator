@@ -26,10 +26,12 @@ namespace CodingameFileGenerator
 
         private static void InitLog()
         {
+            string exePath = AppDomain.CurrentDomain.BaseDirectory;
+
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
                 .WriteTo.Console()
-                .WriteTo.File("CodingameFileGenerator.log",
+                .WriteTo.File($"{ exePath }\\CodingameFileGenerator.log",
                     rollingInterval: RollingInterval.Day,
                     rollOnFileSizeLimit: true,
                     flushToDiskInterval: TimeSpan.FromDays(7))
