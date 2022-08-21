@@ -1,6 +1,6 @@
 # Codingame File Generator
 
-A CLI application for generating a unique C# file containing all C# code on a specified folder.  
+A CLI for generating a unique C# file containing all C# code from a specified folder.  
 So you can use it for generate your app code in one file and submit it to a Codingame puzzle.  
 
 ## Command line arguments
@@ -15,7 +15,7 @@ This command line : `C:\Dev\codingame-bots\CodingameFileGenerator\CodingameFileG
 
 Will generate a `_codingame_output.cs` file on `C:\Dev\codingame-bots` containing all C# code in `C:\Dev\codingame-bots\ocean-of-code` folder. Starting with `program.cs` file content.
 
-## Generate a unique file for your project
+## Generate a unique file for your Visual Studio project
 The best way is to add a **Post-build event command line** *(On project properties, Build Events)*.  
 
 ![image](https://user-images.githubusercontent.com/27150821/185811891-2efcc8af-73ed-4f14-8298-07a2387ca4a7.png)  
