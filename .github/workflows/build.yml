@@ -46,6 +46,7 @@ jobs:
           $coverageFile = Get-ChildItem -Recurse -Path TestResults -Filter "coverage.cobertura.xml" | Select-Object -ExpandProperty FullName -First 1
           if ($coverageFile -eq $null) { Write-Host "No coverage file found!" ; exit 1 }
           echo "COVERAGE_FILE=$coverageFile" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          Write-Host "Coverage file path: $coverageFile"
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"reisack_CodingameFileGenerator" /o:"reisack" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths="$env:COVERAGE_FILE"
           dotnet build
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
