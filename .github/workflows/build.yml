@@ -42,11 +42,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
-          $coverageFile = Get-ChildItem -Recurse -Path TestResults -Filter "coverage.cobertura.xml" | Select-Object -ExpandProperty FullName -First 1
-          if ($coverageFile -eq $null) { Write-Host "No coverage file found!" ; exit 1 }
-          echo "COVERAGE_FILE=$coverageFile" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
-          Write-Host "Coverage file path: $coverageFile"
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"reisack_CodingameFileGenerator" /o:"reisack" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths="$coverageFile"
-          dotnet build
+          dotnet tool install --global dotnet-coverage
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"reisack_CodingameFileGenerator" /o:"reisack" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vscoveragexml.reportsPaths=coverage.xml
+          dotnet build --no-incremental
+          dotnet-coverage collect 'dotnet test' -f xml  -o 'coverage.xml'
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
