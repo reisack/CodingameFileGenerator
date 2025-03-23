@@ -1,8 +1,8 @@
 {
   "profiles": {
     "CodingameFileGenerator": {
-      "commandName": "Project",
-      "commandLineArgs": "-r C:\\Dev\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests\\test-files -o C:\\Dev\\CodingameFileGenerator -f program"
+        "commandName": "Project",
+        "commandLineArgs": "-r C:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests\\test-files -o C:\\Dev\\dotnet\\CodingameFileGenerator -f program"
     }
   }
 }

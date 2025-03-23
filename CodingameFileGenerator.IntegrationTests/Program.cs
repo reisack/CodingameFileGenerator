@@ -6,7 +6,7 @@ namespace CodingameFileGenerator.IntegrationTests
 {
     class Program
     {
-        public const string INTEGRATION_TESTS_FOLDER = "C:\\Dev\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests";
+        public const string INTEGRATION_TESTS_FOLDER = "C:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests";
         public const string OUTPUT_FILEPATH = INTEGRATION_TESTS_FOLDER + "\\_codingame_output.cs";
 
         private const string LOG_FILENAME = "CodingameFileGenerator_IntegrationTest.log";
