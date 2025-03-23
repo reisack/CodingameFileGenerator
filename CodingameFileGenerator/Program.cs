@@ -4,9 +4,11 @@ using System.IO;
 using System.IO.Abstractions;
 using Serilog;
 using System.Linq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CodingameFileGenerator
 {
+    [ExcludeFromCodeCoverage]
     public class Program
     {
         static void Main(string[] args)
