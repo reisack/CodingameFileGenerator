@@ -49,5 +49,5 @@ jobs:
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"reisack_CodingameFileGenerator" /o:"reisack" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.coverageReportPaths="TestResults/Coverage/Cobertura.xml"
           dotnet build
           dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults
-          reportgenerator -reports:TestResults/**/coverage.cobertura.xml -targetdir:TestResults/Coverage -reporttypes:Cobertura
+          reportgenerator -reports:TestResults/**/coverage.cobertura.xml -targetdir:TestResults/Coverage -reporttypes:Cobertura -reportversion:1
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
