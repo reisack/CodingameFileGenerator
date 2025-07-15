@@ -91,11 +91,12 @@ namespace CodingameFileGenerator.Tests
         {
             // Arrange
             // Create a directory with the same name, so WriteAllLines will throw
+            var lines = new List<string> { "foo" };
             string path = @"c:\temp\conflict.txt";
             _mockFileSystem.AddDirectory(path);
 
             // Act
-            var result = FileHelper.WriteAllLines(path, new[] { "foo" });
+            var result = FileHelper.WriteAllLines(path, lines);
 
             // Assert
             Assert.IsFalse(result);
