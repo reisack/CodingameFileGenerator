@@ -125,7 +125,7 @@ namespace CodingameFileGenerator
 
                 // Remove comments, multiple spaces and tabs on using directives
                 string unwantedChars = @"//.*|\s+";
-                line = Regex.Replace(line, unwantedChars, " ").Trim();
+                line = Regex.Replace(line, unwantedChars, " ", RegexOptions.NonBacktracking).Trim();
 
                 if (!string.IsNullOrWhiteSpace(line) && !_outputUsingsLines.Contains(line))
                 {
