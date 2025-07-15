@@ -8,11 +8,11 @@ namespace CodingameFileGenerator.IntegrationTests
 {
     public class IntegrationTest
     {
-        private const string EXE_FILENAME = "C:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator\\bin\\Release\\net8.0\\CodingameFileGenerator.exe";
+        private const string EXE_FILENAME = "D:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator\\bin\\Release\\net8.0\\CodingameFileGenerator.exe";
         
-        private string _arguments;
-        private string _expectedContentFilename;
-        private bool _outputFileShouldBeCreated;
+        private readonly string _arguments;
+        private readonly string _expectedContentFilename;
+        private readonly bool _outputFileShouldBeCreated;
 
         public static int NbTestsSucceeded { get; private set; } = 0;
         public static int NbTestsFailed { get; private set; } = 0;
@@ -77,7 +77,7 @@ namespace CodingameFileGenerator.IntegrationTests
                     // Check Exit code
                     if (process.ExitCode != 0)
                     {
-                        Log.Error($"Unexpected exit code { process.ExitCode }");
+                        Log.Error("Unexpected exit code {0}", process.ExitCode);
                     }
                     else
                     {

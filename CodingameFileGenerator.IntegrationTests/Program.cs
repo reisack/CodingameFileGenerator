@@ -6,7 +6,7 @@ namespace CodingameFileGenerator.IntegrationTests
 {
     class Program
     {
-        public const string INTEGRATION_TESTS_FOLDER = "C:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests";
+        public const string INTEGRATION_TESTS_FOLDER = "D:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests";
         public const string OUTPUT_FILEPATH = INTEGRATION_TESTS_FOLDER + "\\_codingame_output.cs";
 
         private const string LOG_FILENAME = "CodingameFileGenerator_IntegrationTest.log";
@@ -42,7 +42,7 @@ namespace CodingameFileGenerator.IntegrationTests
             PrepareTest(testLabel, arguments, expectedContentFilename);
 
             Log.Information("===============================================");
-            Log.Information($"Total : { IntegrationTest.NbTests }, Succeeded : { IntegrationTest.NbTestsSucceeded }, Failed : { IntegrationTest.NbTestsFailed }");
+            Log.Information("Total : {0}, Succeeded : {1}, Failed : {2}", IntegrationTest.NbTests, IntegrationTest.NbTestsSucceeded, IntegrationTest.NbTestsFailed);
             
             Log.CloseAndFlush();
             CleanOutputFile();
@@ -55,7 +55,7 @@ namespace CodingameFileGenerator.IntegrationTests
         {
             Log.Information("-----------------------------------------------");
             Log.Information(testLabel);
-            Log.Information($"Arguments : { arguments }");
+            Log.Information("Arguments : {0}", arguments);
 
             IntegrationTest test;
             if (expectedContentFilename == null)

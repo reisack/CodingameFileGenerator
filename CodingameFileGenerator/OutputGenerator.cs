@@ -61,7 +61,7 @@ namespace CodingameFileGenerator
 
             if (FileHelper.WriteAllLines(outputFilePath, outputFileAllLines))
             {
-                Log.Information($"Output file [{ outputFilePath }] generated with { outputFileAllLines.Count } lines");
+                Log.Information("Output file [{0}] generated with {1} lines", outputFilePath, outputFileAllLines.Count);
             }
         }
 

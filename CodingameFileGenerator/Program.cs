@@ -15,7 +15,7 @@ namespace CodingameFileGenerator
         {
             InitLog();
             InitIOWrapper();
-            Log.Information($"Start Program");
+            Log.Information("Start Program");
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -23,7 +23,7 @@ namespace CodingameFileGenerator
             Run(args);
 
             stopwatch.Stop();
-            Log.Information($"Program executed in { stopwatch.ElapsedMilliseconds } ms");
+            Log.Information("Program executed in {0} ms", stopwatch.ElapsedMilliseconds);
             Log.CloseAndFlush();
         }
 
