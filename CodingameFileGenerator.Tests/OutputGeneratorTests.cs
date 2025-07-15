@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.Collections.Generic;
 using System.IO.Abstractions.TestingHelpers;
 
@@ -15,7 +16,7 @@ namespace CodingameFileGenerator.Tests
         [TestMethod]
         public void Run__With_No_File()
         {
-            string[] filePaths = { };
+            string[] filePaths = Array.Empty<string>();
             IO.This = new MockFileSystem();
             OutputGenerator output = new OutputGenerator(filePaths);
 

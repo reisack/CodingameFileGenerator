@@ -7,10 +7,7 @@ namespace CodingameFileGenerator
     {
         public static int IndexOfAny(this string str, IEnumerable<string> words)
         {
-            if (words == null)
-            {
-                throw new ArgumentNullException("words");
-            }
+            ArgumentNullException.ThrowIfNull(words, nameof(words));
 
             int smallestIndex = int.MaxValue;
 

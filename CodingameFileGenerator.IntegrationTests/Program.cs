@@ -4,7 +4,7 @@ using System.IO;
 
 namespace CodingameFileGenerator.IntegrationTests
 {
-    class Program
+    public static class Program
     {
         public const string INTEGRATION_TESTS_FOLDER = "D:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator.IntegrationTests";
         public const string OUTPUT_FILEPATH = INTEGRATION_TESTS_FOLDER + "\\_codingame_output.cs";

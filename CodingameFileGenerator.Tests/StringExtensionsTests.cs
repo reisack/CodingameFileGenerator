@@ -65,7 +65,7 @@ namespace CodingameFileGenerator.Tests
         public void IndexOfAny__No_Words_At_All()
         {
             string line = "stan kenny kyle cartman";
-            string[] words = { };
+            string[] words = Array.Empty<string>();
 
             int index = line.IndexOfAny(words);
 
@@ -78,7 +78,7 @@ namespace CodingameFileGenerator.Tests
             string line = "stan kenny kyle cartman";
             string[] words = null;
 
-            Assert.ThrowsException<ArgumentNullException>(() => line.IndexOfAny(words));
+            Assert.ThrowsExactly<ArgumentNullException>(() => line.IndexOfAny(words));
         }
     }
 }

@@ -2,7 +2,7 @@
 {
     public class OutputGeneratorAsserts
     {
-        public static string TwoFilesWithoutUsingAssert =
+        public const string TwoFilesWithoutUsingAssert =
 @"
 public class Position
 {
@@ -25,7 +25,7 @@ public enum Direction //struct
 }
 ";
 
-        public static string ThreeFilesWithUsingAssert =
+        public const string ThreeFilesWithUsingAssert =
             @"using System;
 using System.Collection;
 using System.Text;
@@ -85,7 +85,7 @@ public static class MapInfo
 }
 ";
 
-        public static string ThreeFilesWithUsingAssertAndFirstFileProvided =
+        public const string ThreeFilesWithUsingAssertAndFirstFileProvided =
 @"using System;
 using System.IO;
 using System.Collection;

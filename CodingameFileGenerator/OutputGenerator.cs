@@ -14,9 +14,9 @@ namespace CodingameFileGenerator
             "class", "struct", "enum", "interface"
         };
 
-        private IList<string> _filesPath;
-        private IList<string> _outputUsingsLines;
-        private IList<string> _outputContentLines;
+        private readonly List<string> _filesPath;
+        private readonly List<string> _outputUsingsLines;
+        private readonly List<string> _outputContentLines;
 
         public OutputGenerator(IEnumerable<string> filesPath, string firstFileName = null)
         {
@@ -79,7 +79,7 @@ namespace CodingameFileGenerator
             }
             else
             {
-                Log.Warning($"Cannot put file content of { firstFileName }.cs at top of output file, this is probably a filename typo");
+                Log.Warning("Cannot put file content of {0}.cs at top of output file, this is probably a filename typo", firstFileName);
             }
         }
 

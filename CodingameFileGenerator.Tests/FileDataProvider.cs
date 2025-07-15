@@ -2,7 +2,7 @@
 {
     public static class FileDataProvider
     {
-        public static string EnumWithoutUsing =
+        public const string EnumWithoutUsing =
 @"public enum Direction //struct
 {
     NoDirection,
@@ -12,7 +12,7 @@
     Down
 }";
 
-        public static string EnumWithUsing =
+        public const string EnumWithUsing =
 @"// using toto
 // class ItsATrap
 using         System;
@@ -27,7 +27,7 @@ public enum Direction //struct
     Down
 }";
 
-        public static string EnumWithMultilineCommentOnUsing =
+        public const string EnumWithMultilineCommentOnUsing =
 @"// using toto
 // class ItsATrap
 using System; /* 
@@ -42,7 +42,7 @@ public enum Direction //struct
     Down
 }";
 
-        public static string StaticClassWithUsing =
+        public const string StaticClassWithUsing =
 @"  using System;
 using System.IO;
 
@@ -75,7 +75,7 @@ public static class MapInfo
     }
 }";
 
-        public static string ClassWithoutUsing =
+        public const string ClassWithoutUsing =
 @"public class Position
 {
     public int X { get; set; }
@@ -88,7 +88,7 @@ public static class MapInfo
     }
 }";
 
-        public static string ClassWithUsing =
+        public const string ClassWithUsing =
 @"
 
 using System; // class

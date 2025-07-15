@@ -17,7 +17,7 @@ namespace CodingameFileGenerator
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"Error when trying to delete file [{ path }]");
+                Log.Error(ex, "Error when trying to delete file [{0}]", path);
             }
 
             return processIsOk;
@@ -34,7 +34,7 @@ namespace CodingameFileGenerator
             }
             catch (Exception ex)
             {
-                Log.Error(ex, $"Error when generating file [{ path }]");
+                Log.Error(ex, "Error when generating file [{0}]", path);
             }
 
             return processIsOk;

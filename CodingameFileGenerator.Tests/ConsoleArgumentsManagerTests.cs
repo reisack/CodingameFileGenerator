@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
 using System.IO.Abstractions.TestingHelpers;
 
 namespace CodingameFileGenerator.Tests
@@ -15,7 +16,7 @@ namespace CodingameFileGenerator.Tests
         [TestMethod]
         public void AreConsoleArgumentsValid__No_Args_At_All_In_Command_Line()
         {
-            string[] arguments = { };
+            string[] arguments = Array.Empty<string>();
             ConsoleArgumentsManager consoleArgs = new ConsoleArgumentsManager(arguments);
 
             // Default values if no argument specified in command line
