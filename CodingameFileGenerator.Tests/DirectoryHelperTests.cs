@@ -12,6 +12,9 @@ namespace CodingameFileGenerator.Tests
     [TestClass]
     public class DirectoryHelperTests
     {
+        private static readonly string CurrentDirectoryPath =
+            Path.DirectorySeparatorChar == '\\' ? @"c:\workspace" : "/workspace";
+
         private MockFileSystem _mockFileSystem;
         private ILogger _logger;
         private IDisposable _logContext;
@@ -21,7 +24,7 @@ namespace CodingameFileGenerator.Tests
         {
             ResetDirectoryHelperState();
 
-            _mockFileSystem = new MockFileSystem(new Dictionary<string, MockFileData>(), @"c:\workspace");
+            _mockFileSystem = new MockFileSystem(new Dictionary<string, MockFileData>(), CurrentDirectoryPath);
             IO.This = _mockFileSystem;
 
             _logger = new LoggerConfiguration()
@@ -36,7 +39,7 @@ namespace CodingameFileGenerator.Tests
         public void Cleanup()
         {
             ResetDirectoryHelperState();
-            _logContext.Dispose();
+            _logContext?.Dispose();
             Log.CloseAndFlush();
         }
 
@@ -45,7 +48,7 @@ namespace CodingameFileGenerator.Tests
         {
             var currentDirectory = DirectoryHelper.GetCurrentDirectory();
 
-            Assert.AreEqual(@"c:\workspace", currentDirectory);
+            Assert.AreEqual(CurrentDirectoryPath, currentDirectory);
         }
 
         [TestMethod]
@@ -57,7 +60,7 @@ namespace CodingameFileGenerator.Tests
             var secondDirectory = DirectoryHelper.GetCurrentDirectory();
 
             Assert.AreEqual(firstDirectory, secondDirectory);
-            Assert.AreEqual(@"c:\workspace", secondDirectory);
+            Assert.AreEqual(CurrentDirectoryPath, secondDirectory);
         }
 
         [TestMethod]
@@ -92,17 +95,21 @@ namespace CodingameFileGenerator.Tests
         [TestMethod]
         public void GetSourceFilePaths_WhenFilesExist_ReturnsMatchingPaths()
         {
-            _mockFileSystem.AddFile(@"c:\workspace\a.cs", new MockFileData("class A {}"));
-            _mockFileSystem.AddFile(@"c:\workspace\b.txt", new MockFileData("text"));
-            _mockFileSystem.AddFile(@"c:\workspace\sub\c.cs", new MockFileData("class C {}"));
+            var firstCsFilePath = Path.Combine(CurrentDirectoryPath, "a.cs");
+            var txtFilePath = Path.Combine(CurrentDirectoryPath, "b.txt");
+            var nestedCsFilePath = Path.Combine(CurrentDirectoryPath, "sub", "c.cs");
 
-            var paths = DirectoryHelper.GetSourceFilePaths(@"c:\workspace", "cs", SearchOption.AllDirectories);
+            _mockFileSystem.AddFile(firstCsFilePath, new MockFileData("class A {}"));
+            _mockFileSystem.AddFile(txtFilePath, new MockFileData("text"));
+            _mockFileSystem.AddFile(nestedCsFilePath, new MockFileData("class C {}"));
+
+            var paths = DirectoryHelper.GetSourceFilePaths(CurrentDirectoryPath, "cs", SearchOption.AllDirectories);
 
             CollectionAssert.AreEquivalent(
                 new[]
                 {
-                    @"c:\workspace\a.cs",
-                    @"c:\workspace\sub\c.cs"
+                    firstCsFilePath,
+                    nestedCsFilePath
                 },
                 paths);
         }
