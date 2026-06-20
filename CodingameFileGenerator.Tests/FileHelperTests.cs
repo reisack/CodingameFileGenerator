@@ -65,9 +65,9 @@ namespace CodingameFileGenerator.Tests
 
             // Assert Serilog error log
             var logEvents = TestCorrelator.GetLogEventsFromCurrentContext();
-            Assert.IsTrue(
-                logEvents.Any(le => le.Level == Serilog.Events.LogEventLevel.Error &&
-                                    le.MessageTemplate.Text.Contains("Error when trying to delete file")));
+            Assert.Contains(
+                le => le.Level == Serilog.Events.LogEventLevel.Error &&
+                                    le.MessageTemplate.Text.Contains("Error when trying to delete file"), logEvents);
         }
 
         [TestMethod]
@@ -102,9 +102,9 @@ namespace CodingameFileGenerator.Tests
             Assert.IsFalse(result);
 
             var logEvents = TestCorrelator.GetLogEventsFromCurrentContext();
-            Assert.IsTrue(
-                logEvents.Any(le => le.Level == Serilog.Events.LogEventLevel.Error &&
-                                    le.MessageTemplate.Text.Contains("Error when generating file")));
+            Assert.Contains(
+                le => le.Level == Serilog.Events.LogEventLevel.Error &&
+                                    le.MessageTemplate.Text.Contains("Error when generating file"), logEvents);
         }
     }
 }
