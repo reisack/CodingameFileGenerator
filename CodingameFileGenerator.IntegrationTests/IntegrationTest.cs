@@ -8,7 +8,7 @@ namespace CodingameFileGenerator.IntegrationTests
 {
     public class IntegrationTest
     {
-        private const string EXE_FILENAME = "D:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator\\bin\\Release\\net8.0\\CodingameFileGenerator.exe";
+        private const string EXE_FILENAME = "D:\\Dev\\dotnet\\CodingameFileGenerator\\CodingameFileGenerator\\bin\\Release\\net10.0\\CodingameFileGenerator.exe";
         
         private readonly string _arguments;
         private readonly string _expectedContentFilename;
